@@ -1,0 +1,8 @@
+services:
+  notebook:
+    build: .
+    volumes:
+      - ./notebooks:/app/notebooks
+    ports:
+      - "4000:4000"
+    command: jupyter notebook --ip 0.0.0.0 --port 4000 --allow-root
