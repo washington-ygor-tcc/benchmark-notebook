@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "benchmark-notebook"
+version = "0.1.0"
+description = ""
+authors = ["Ygor Tavela <ygortavela@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+matplotlib = "^3.6.2"
+notebook = "^6.5.2"
+numpy = "^1.23.4"
+benchmark = {git = "https://github.com/washington-ygor-tcc/benchmark.git", rev = "main"}
+ipywidgets = "^8.0.2"
+nest-asyncio = "^1.5.6"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

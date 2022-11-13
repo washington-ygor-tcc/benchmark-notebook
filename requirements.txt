@@ -1,6 +1,0 @@
-git+https://github.com/washington-ygor-tcc/benchmark.git
-requests
-notebook
-nest-asyncio
-matplotlib
-ipywidgets
