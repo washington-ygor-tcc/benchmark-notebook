@@ -180,7 +180,7 @@ uvloop = "^0.17.0"
 type = "git"
 url = "https://github.com/washington-ygor-tcc/benchmark.git"
 reference = "main"
-resolved_reference = "426b50bb4115dcd15f3745937f69ba83bfc421a6"
+resolved_reference = "114e5252e460ee55f6c170f05d19b759ca1660dc"
 
 [[package]]
 name = "black"
@@ -519,7 +519,7 @@ format-nongpl = ["fqdn", "idna", "isoduration", "jsonpointer (>1.13)", "rfc3339-
 
 [[package]]
 name = "jupyter-client"
-version = "7.4.5"
+version = "7.4.6"
 description = "Jupyter protocol implementation and client libraries"
 category = "main"
 optional = false
@@ -556,8 +556,8 @@ test = ["ipykernel", "pre-commit", "pytest", "pytest-cov", "pytest-timeout"]
 
 [[package]]
 name = "jupyter-server"
-version = "1.23.1"
-description = "=?utf-8?q?The_backend=E2=80=94i=2Ee=2E_core_services=2C_APIs=2C_and_REST_endpoints=E2=80=94to_Jupyter_web_applications=2E?="
+version = "1.23.2"
+description = "The backend—i.e. core services, APIs, and REST endpoints—to Jupyter web applications."
 category = "main"
 optional = false
 python-versions = ">=3.7"
@@ -733,7 +733,7 @@ test = ["black", "check-manifest", "flake8", "ipykernel", "ipython", "ipywidgets
 
 [[package]]
 name = "nbconvert"
-version = "7.2.4"
+version = "7.2.5"
 description = "Converting Jupyter Notebooks"
 category = "main"
 optional = false
