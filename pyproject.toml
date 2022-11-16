@@ -12,6 +12,7 @@ numpy = "^1.23.4"
 benchmark = {git = "https://github.com/washington-ygor-tcc/benchmark.git", rev = "main"}
 ipywidgets = "^8.0.2"
 nest-asyncio = "^1.5.6"
+PyQt5 = "^5.15.7"
 
 [tool.poetry.dev-dependencies]
 
