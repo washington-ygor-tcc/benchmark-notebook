@@ -3,6 +3,7 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 
+from typing import Literal
 from benchmark.application import app, types, config
 from benchmark.application.types import BenchmarkParams
 
@@ -244,13 +245,13 @@ def plot_wrapper(plot_func, x_legend, y_legend, title):
     return wrapper
 
 
-def get_bechmark_params(benchmark_type, parameter, range_values):
+def get_bechmark_params(benchmark_type, parameter, range_values, fixed_requests_number):
     default_params = dict(
         benchmark_type=benchmark_type,
         complexity_factor=1,
         memory_overhead=1,
-        requests_number=4096,
-        batch_size=4096,
+        requests_number=fixed_requests_number,
+        batch_size=fixed_requests_number,
         batch_progress=False,
         total_progress=True,
     )
@@ -375,7 +376,7 @@ ANALYSIS_TYPE = {
 }
 
 
-def main(benchmark_range_callback, env, show_plots=False, save_plots=True):
+def main(benchmark_range_callback, env, fixed_requests_number, show_plots=False, save_plots=True):
     results = []
     for parameter, plots in ANALYSIS_TYPE.items():
         print("parameter", parameter)
@@ -383,11 +384,13 @@ def main(benchmark_range_callback, env, show_plots=False, save_plots=True):
             types.BenchmarkTypes.API,
             parameter,
             benchmark_range_callback(parameter),
+            fixed_requests_number
         )
         msg_params = get_bechmark_params(
             types.BenchmarkTypes.MSG,
             parameter,
             benchmark_range_callback(parameter),
+            fixed_requests_number
         )
         api_results = run(api_params, env)
         msg_results = run(msg_params, env)
@@ -419,17 +422,24 @@ def main(benchmark_range_callback, env, show_plots=False, save_plots=True):
     ),
     default=config.Env.DOCKER,
 )
+@click.option("--memory_overhead", "-mr", type=int, default=11)
+@click.option("--complexity_factor", "-cf", type=int, default=11)
+@click.option("--requests_number", "-rn", type=int, default=15)
+@click.option("--fixed_requests_number", "-fr", type=int, default=4096)
 @click.option("--save", is_flag=True)
 @click.option("--show", is_flag=True)
-def cli(env, save, show):
+def cli(env, memory_overhead, complexity_factor, requests_number, fixed_requests_number, save, show):
+
     def range_callback(parameter):
         match parameter:
-            case "memory_overhead" | "complexity_factor":
-                return [2**i for i in range(11)]
-            case _:
-                return [2**i for i in range(15)]
+            case "memory_overhead":
+                return [2**i for i in range(memory_overhead)]
+            case "complexity_factor":
+                return [2**i for i in range(complexity_factor)]
+            case "requests_number":
+                return [2**i for i in range(requests_number)]
 
-    main(range_callback, env, show_plots=show, save_plots=save)
+    main(range_callback, env, fixed_requests_number, show_plots=show, save_plots=save)
 
 if __name__ == "__main__":
     cli()
