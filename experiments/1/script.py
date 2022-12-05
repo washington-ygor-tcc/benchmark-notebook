@@ -9,7 +9,7 @@ from benchmark.application.types import BenchmarkParams
 def get_result(param):
     result = app.run_benchmark(param)
 
-    time.sleep(3)
+    time.sleep(5)
 
     return result
 
@@ -47,46 +47,66 @@ def plot_requests_by_batch():
     fig, axs = plt.subplots(nrows=2, figsize=(12, 16))
 
     axs[0].boxplot(elapsed_times[: len(batch_list)], labels=batch_list)
-    axs[0].set_title("API", fontsize=10)
-    axs[0].plot(
-        axs[0].get_xticks(),
-        [result.elapsed_time for result in results[: len(batch_list)]],
-        "o--b",
-        label="Tempo total",
-    )
-    axs[0].legend()
+    axs[0].set_title("API RPC", fontsize=10)
+    axs[0].set_xlabel("Tamanho do lote de requisição")
+    axs[0].set_ylabel("Tempo de resposta p/ cada requisição (s)")
+    axs[0].grid(True)
 
     axs[1].boxplot(elapsed_times[len(batch_list) :], labels=batch_list)
-    axs[1].set_title("MSG", fontsize=10)
-    axs[1].plot(
-        axs[1].get_xticks(),
-        [result.elapsed_time for result in results[len(batch_list) :]],
-        "o--b",
-        label="Tempo total",
-    )
-    axs[1].legend()
+    axs[1].set_title("Mensageria", fontsize=10)
+    axs[1].set_xlabel("Tamanho do lote de requisição")
+    axs[1].set_ylabel("Tempo de resposta p/ cada requisição (s)")
+    axs[1].grid(True)
 
-    fig.supxlabel("Tamanho do lote de requisição")
-    fig.supylabel("Tempo de resposta p/ cada requisição")
-    fig.suptitle("4096 requisições separadas por lotes")
     fig.subplots_adjust(top=0.93, hspace=0.2, wspace=0.2)
 
     plt.savefig("plots/requests_by_batch.png")
     plt.show()
 
 
-def plot_req_per_second():
+def plot_total_time_by_batch():
     plt.plot(
-        batch_list, get_requests_per_second(results[: len(batch_list)]), label="API"
+        batch_list,
+        [result.elapsed_time for result in results[: len(batch_list)]],
+        ":r",
+        label="API RPC",
     )
     plt.plot(
-        batch_list, get_requests_per_second(results[len(batch_list) :]), label="MSG"
+        batch_list,
+        [result.elapsed_time for result in results[len(batch_list) :]],
+        "--b",
+        label="Mensageria",
     )
 
     plt.legend()
     plt.xlabel("Tamanho do lote de requisição")
-    plt.ylabel("Req/s")
-    plt.title("Requisições por segundo para cada tamanho de lote")
+    plt.ylabel("Tempo total para realizar 4096 requisições (s)")
+
+    plt.grid(True)
+    plt.xscale("log", base=2)
+    plt.xticks(batch_list)
+
+    plt.savefig("plots/total_time_by_batch.png")
+    plt.show()
+
+
+def plot_req_per_second():
+    plt.plot(
+        batch_list,
+        get_requests_per_second(results[: len(batch_list)]),
+        ":r",
+        label="API RPC",
+    )
+    plt.plot(
+        batch_list,
+        get_requests_per_second(results[len(batch_list) :]),
+        "--b",
+        label="Mensageria",
+    )
+
+    plt.legend()
+    plt.xlabel("Tamanho do lote de requisição")
+    plt.ylabel("Requisições por segundo")
 
     plt.grid(True)
     plt.xscale("log", base=2)
@@ -100,18 +120,19 @@ def plot_standard_deviation():
     plt.plot(
         batch_list,
         get_standard_deviation(elapsed_times[: len(batch_list)]),
-        label="API",
+        ":r",
+        label="API RPC",
     )
     plt.plot(
         batch_list,
         get_standard_deviation(elapsed_times[len(batch_list) :]),
-        label="MSG",
+        "--b",
+        label="Mensageria",
     )
 
     plt.legend()
     plt.xlabel("Tamanho do lote de requisição")
-    plt.ylabel("Desvio padrão")
-    plt.title("Desvio padrão observado para cada tamanho de lote")
+    plt.ylabel("Desvio padrão do tempo de resposta (s)")
 
     plt.grid(True)
     plt.xscale("log", base=2)
@@ -122,5 +143,6 @@ def plot_standard_deviation():
 
 
 plot_requests_by_batch()
+plot_total_time_by_batch()
 plot_req_per_second()
 plot_standard_deviation()

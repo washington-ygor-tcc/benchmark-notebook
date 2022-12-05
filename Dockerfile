@@ -18,8 +18,8 @@ COPY pyproject.toml poetry.lock ./
 
 RUN poetry install --no-interaction --no-ansi --no-root
 
-WORKDIR /app/notebooks
+WORKDIR /app/experiments
 
-COPY ./notebooks ./
+COPY ./experiments ./
 
 EXPOSE 4000
