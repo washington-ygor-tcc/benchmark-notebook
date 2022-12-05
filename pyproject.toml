@@ -5,11 +5,11 @@ description = ""
 authors = ["Ygor Tavela <ygortavela@gmail.com>"]
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "^3.10.0"
 matplotlib = "^3.6.2"
 notebook = "^6.5.2"
 numpy = "^1.23.4"
-benchmark = {git = "https://github.com/washington-ygor-tcc/benchmark.git", rev = "main"}
+benchmark = {git = "https://github.com/washington-ygor-tcc/benchmark.git", branch = "main"}
 ipywidgets = "^8.0.2"
 nest-asyncio = "^1.5.6"
 PyQt5 = "^5.15.7"
