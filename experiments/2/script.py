@@ -1,3 +1,4 @@
+import click
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
@@ -29,18 +30,18 @@ def plot_total_bloxplot_timings(
     fig, axs = plt.subplots(nrows=2, figsize=(12, 16))
 
     axs[0].boxplot(api_elapsed_times, labels=x_values)
-    axs[0].set_title("API", fontsize=10)
+    axs[0].set_title("API RPC", fontsize=10)
     axs[0].plot(
         axs[0].get_xticks(),
         [result.elapsed_time for result in api_results],
-        "o--b",
+        "o--r",
         label="Tempo total",
     )
     axs[0].legend()
     axs[0].grid(True)
 
     axs[1].boxplot(msg_elapsed_times, labels=x_values)
-    axs[1].set_title("MSG", fontsize=10)
+    axs[1].set_title("Mensageria", fontsize=10)
     axs[1].plot(
         axs[1].get_xticks(),
         [result.elapsed_time for result in msg_results],
@@ -78,8 +79,8 @@ def plot_total_timings(
     def get_result_timings(results):
         return [result.elapsed_time for result in results]
 
-    plt.plot(x_values, get_result_timings(api_results), "o--r", label="API")
-    plt.plot(x_values, get_result_timings(msg_results), "o--b", label="MSG")
+    plt.plot(x_values, get_result_timings(api_results), ":r", label="API RPC")
+    plt.plot(x_values, get_result_timings(msg_results), "--b", label="Mensageria")
     plt.legend()
     plt.grid(True)
     plt.xlabel(x_legend)
@@ -115,10 +116,10 @@ def plot_mean_timings(
         ]
 
     plt.plot(
-        x_values, get_mean_request_timings(api_results), "o--r", label="API"
+        x_values, get_mean_request_timings(api_results), ":r", label="API RPC"
     )
     plt.plot(
-        x_values, get_mean_request_timings(msg_results), "o--b", label="MSG"
+        x_values, get_mean_request_timings(msg_results), "--b", label="Mensageria"
     )
     plt.legend()
     plt.grid(True)
@@ -156,10 +157,10 @@ def plot_throughput(
         ]
 
     plt.plot(
-        x_values, get_requests_per_second(api_results), "o--r", label="API"
+        x_values, get_requests_per_second(api_results), ":r", label="API RPC"
     )
     plt.plot(
-        x_values, get_requests_per_second(msg_results), "o--b", label="MSG"
+        x_values, get_requests_per_second(msg_results), "--b", label="Mensageria"
     )
     plt.legend()
     plt.xlabel(x_legend)
@@ -197,10 +198,10 @@ def plot_std_timings(
         return [np.std(np.asarray(timing)) for timing in timings]
 
     plt.plot(
-        x_values, get_standard_deviation(api_results), "o--r", label="API"
+        x_values, get_standard_deviation(api_results), ":r", label="API RPC"
     )
     plt.plot(
-        x_values, get_standard_deviation(msg_results), "o--b", label="MSG"
+        x_values, get_standard_deviation(msg_results), "--b", label="Mensageria"
     )
 
     plt.legend()
@@ -268,10 +269,10 @@ def run(params, env):
 
 
 def plot_results(
-    plots, api_results, msg_results, benchmark_range, parameter, show=False
+    plots, api_results, msg_results, benchmark_range, parameter, show=False, save=True
 ):
     for plot in plots:
-        plot(api_results, msg_results, benchmark_range, parameter, show=False)
+        plot(api_results, msg_results, benchmark_range, parameter, show=show, save=save)
 
 
 ANALYSIS_TYPE = {
@@ -398,15 +399,29 @@ def main(benchmark_range_callback, env, show_plots=False, save_plots=True):
                 msg_results,
                 benchmark_range_callback(parameter),
                 parameter,
+                show_plots,
+                save_plots
             ]
         )
 
     for result in results:
-        plot_results(*result, show_plots, save_plots)
+        plot_results(*result)
 
 
-if __name__ == "__main__":
-
+@click.command()
+@click.option(
+    "--env",
+    "-e",
+    "env",
+    type=click.Choice(
+        list(config.Env),
+        case_sensitive=False,
+    ),
+    default=config.Env.DOCKER,
+)
+@click.option("--save", is_flag=True)
+@click.option("--show", is_flag=True)
+def cli(env, save, show):
     def range_callback(parameter):
         match parameter:
             case "memory_overhead" | "complexity_factor":
@@ -414,7 +429,7 @@ if __name__ == "__main__":
             case _:
                 return [2**i for i in range(15)]
 
-    if sys.argv[1].strip() == "docker":
-        main(range_callback, config.Env.DOCKER)
-    else:
-        main(range_callback, config.Env.LOCAL)
+    main(range_callback, env, show_plots=show, save_plots=save)
+
+if __name__ == "__main__":
+    cli()
