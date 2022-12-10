@@ -1,12 +1,16 @@
 import click
-import sys
 import numpy as np
 import matplotlib.pyplot as plt
 
-from typing import Literal
 from benchmark.application import app, types, config
 from benchmark.application.types import BenchmarkParams
 
+
+flatten = lambda lst: [item for sublist in lst for item in sublist]
+timings = lambda results: [
+    [t.end - t.start for t in result.response_list]
+    for result in results
+]
 
 def plot_total_bloxplot_timings(
     api_results,
@@ -19,14 +23,8 @@ def plot_total_bloxplot_timings(
     show=False,
     save=True,
 ):
-    api_elapsed_times = [
-        [t.end - t.start for t in result.response_list]
-        for result in api_results
-    ]
-    msg_elapsed_times = [
-        [t.end - t.start for t in result.response_list]
-        for result in msg_results
-    ]
+    api_elapsed_times = timings(api_results)
+    msg_elapsed_times = timings(msg_results)
 
     fig, axs = plt.subplots(nrows=2, figsize=(12, 16))
 
@@ -192,11 +190,7 @@ def plot_std_timings(
     save=True,
 ):
     def get_standard_deviation(results):
-        timings = [
-            [t.end - t.start for t in result.response_list]
-            for result in results
-        ]
-        return [np.std(np.asarray(timing)) for timing in timings]
+        return [np.std(np.asarray(timing)) for timing in timings(results)]
 
     plt.plot(
         x_values, get_standard_deviation(api_results), ":r", label="API RPC"
@@ -378,6 +372,7 @@ ANALYSIS_TYPE = {
 
 def main(benchmark_range_callback, env, fixed_requests_number, show_plots=False, save_plots=True):
     results = []
+    ttests = []
     for parameter, plots in ANALYSIS_TYPE.items():
         print("parameter", parameter)
         api_params = get_bechmark_params(
@@ -409,6 +404,7 @@ def main(benchmark_range_callback, env, fixed_requests_number, show_plots=False,
 
     for result in results:
         plot_results(*result)
+
 
 
 @click.command()
