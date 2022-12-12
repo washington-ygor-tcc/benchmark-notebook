@@ -21,13 +21,13 @@ bench_param_list = [
     BenchmarkParams(
         benchmark_type=bench_type,
         complexity_factor=100,
-        memory_overhead=1,
+        memory_overhead=0,
         requests_number=4096,
         batch_size=batch_size,
         total_progress=True,
     )
-    for bench_type in benchmark_types
     for batch_size in batch_list
+    for bench_type in benchmark_types
 ]
 
 results = [get_result(param) for param in bench_param_list]
@@ -46,16 +46,16 @@ def get_standard_deviation(elapsed_times):
 def plot_requests_by_batch():
     fig, axs = plt.subplots(nrows=2, figsize=(12, 16))
 
-    axs[0].boxplot(elapsed_times[: len(batch_list)], labels=batch_list)
-    axs[0].set_title("API RPC", fontsize=10)
-    axs[0].set_xlabel("Tamanho do lote de requisição")
-    axs[0].set_ylabel("Tempo de resposta p/ cada requisição (s)")
+    axs[0].boxplot(elapsed_times[::2], labels=batch_list)
+    axs[0].set_title("API RPC", fontsize=16)
+    axs[0].set_xlabel("Tamanho do lote de requisição", fontsize=16)
+    axs[0].set_ylabel("Tempo de resposta p/ cada requisição (s)", fontsize=16)
     axs[0].grid(True)
 
-    axs[1].boxplot(elapsed_times[len(batch_list) :], labels=batch_list)
-    axs[1].set_title("Mensageria", fontsize=10)
-    axs[1].set_xlabel("Tamanho do lote de requisição")
-    axs[1].set_ylabel("Tempo de resposta p/ cada requisição (s)")
+    axs[1].boxplot(elapsed_times[1::2], labels=batch_list)
+    axs[1].set_title("Mensageria", fontsize=16)
+    axs[1].set_xlabel("Tamanho do lote de requisição", fontsize=16)
+    axs[1].set_ylabel("Tempo de resposta p/ cada requisição (s)", fontsize=16)
     axs[1].grid(True)
 
     fig.subplots_adjust(top=0.93, hspace=0.2, wspace=0.2)
@@ -67,13 +67,13 @@ def plot_requests_by_batch():
 def plot_total_time_by_batch():
     plt.plot(
         batch_list,
-        [result.elapsed_time for result in results[: len(batch_list)]],
+        [result.elapsed_time for result in results[::2]],
         ":r",
         label="API RPC",
     )
     plt.plot(
         batch_list,
-        [result.elapsed_time for result in results[len(batch_list) :]],
+        [result.elapsed_time for result in results[1::2]],
         "--b",
         label="Mensageria",
     )
@@ -93,13 +93,13 @@ def plot_total_time_by_batch():
 def plot_req_per_second():
     plt.plot(
         batch_list,
-        get_requests_per_second(results[: len(batch_list)]),
+        get_requests_per_second(results[::2]),
         ":r",
         label="API RPC",
     )
     plt.plot(
         batch_list,
-        get_requests_per_second(results[len(batch_list) :]),
+        get_requests_per_second(results[1::2]),
         "--b",
         label="Mensageria",
     )
@@ -119,13 +119,13 @@ def plot_req_per_second():
 def plot_standard_deviation():
     plt.plot(
         batch_list,
-        get_standard_deviation(elapsed_times[: len(batch_list)]),
+        get_standard_deviation(elapsed_times[::2]),
         ":r",
         label="API RPC",
     )
     plt.plot(
         batch_list,
-        get_standard_deviation(elapsed_times[len(batch_list) :]),
+        get_standard_deviation(elapsed_times[1::2]),
         "--b",
         label="Mensageria",
     )
