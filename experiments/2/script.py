@@ -1,10 +1,10 @@
-from time import sleep
 import click
 import numpy as np
 import matplotlib.pyplot as plt
-import numpy as np
-from matplotlib import colors
-from matplotlib.ticker import PercentFormatter
+import pandas as pd
+
+
+from time import sleep
 
 from benchmark.application import app, types, config
 from benchmark.application.types import BenchmarkParams
@@ -14,6 +14,59 @@ flatten = lambda lst: [item for sublist in lst for item in sublist]
 timings = lambda results: [
     [t.end - t.start for t in result.response_list] for result in results
 ]
+
+
+def plot_summary(
+    api_results,
+    msg_results,
+    x_values,
+    x_legend,
+    y_legend,
+    title,
+    file_prefix,
+    show=False,
+    save=True,
+):
+    api_elapsed_times = flatten(timings(api_results))
+    msg_elapsed_times = flatten(timings(msg_results))
+
+    df = pd.DataFrame({"api": api_elapsed_times, "msg": msg_elapsed_times})
+    summery = df.describe()
+
+    fig, ax = plt.subplots()
+
+    fig.patch.set_visible(False)
+    ax.axis("off")
+    ax.axis("tight")
+    ax.margins(x=0, y=0)
+
+    values = [
+        summery["api"].values.round(4).tolist(),
+        summery["msg"].values.round(4).tolist(),
+    ]
+
+    table = ax.table(
+        cellText=values,
+        colLabels=["Total", "Média", "DP", "Min", "Q1", "Q2", "Q3", "Max"],
+        rowLabels=["API RPC", "Mensageria"],
+        cellLoc="center",
+        loc="center",
+    )
+    table.set_fontsize(14)
+    table.scale(1, 2)
+
+    fig.tight_layout()
+
+    if save:
+        plt.savefig(
+            f"plots/{file_prefix}_summary.png", dpi=1200, bbox_inches="tight"
+        )
+        summery.style.to_latex(f"plots/{file_prefix}_summary.tex")
+
+    if show:
+        plt.show()
+    else:
+        plt.close()
 
 
 def plot_histogram(
@@ -377,17 +430,23 @@ ANALYSIS_TYPE = {
             y_legend="Req/s",
             title="Requisições por segundo",
         ),
-        plot_wrapper(
-            plot_total_bloxplot_timings,
-            x_legend="Volume de requisições",
-            y_legend="Duração total (s)",
-            title="Duração total por volume de requisições",
-        ),
+        # plot_wrapper(
+        #     plot_total_bloxplot_timings,
+        #     x_legend="Volume de requisições",
+        #     y_legend="Duração total (s)",
+        #     title="Duração total por volume de requisições",
+        # ),
         plot_wrapper(
             plot_histogram,
             x_legend="Frequência",
             y_legend="Duração total (s)",
             title="Histograma da duração das requisições",
+        ),
+        plot_wrapper(
+            plot_summary,
+            x_legend="",
+            y_legend="",
+            title="Sumário - volume de requisições)",
         ),
     ),
     "runtime": (
@@ -415,12 +474,12 @@ ANALYSIS_TYPE = {
             y_legend="Req/s",
             title="Requisições por segundo",
         ),
-        plot_wrapper(
-            plot_total_bloxplot_timings,
-            x_legend="Tempo de execusão",
-            y_legend="Duração total (s)",
-            title="Duração total por tempo de execusão",
-        ),
+        # plot_wrapper(
+        #     plot_total_bloxplot_timings,
+        #     x_legend="Tempo de execusão",
+        #     y_legend="Duração total (s)",
+        #     title="Duração total por tempo de execusão",
+        # ),
     ),
     "memory_overhead": (
         plot_wrapper(
@@ -447,17 +506,23 @@ ANALYSIS_TYPE = {
             y_legend="Req/s",
             title="Requisições por segundo por complexidade de memória",
         ),
-        plot_wrapper(
-            plot_total_bloxplot_timings,
-            x_legend="Complexidade de memória",
-            y_legend="Duração total (s)",
-            title="Duração total das requisições por complexidade de memória",
-        ),
+        # plot_wrapper(
+        #     plot_total_bloxplot_timings,
+        #     x_legend="Complexidade de memória",
+        #     y_legend="Duração total (s)",
+        #     title="Duração total das requisições por complexidade de memória",
+        # ),
         plot_wrapper(
             plot_histogram,
             x_legend="Frequência",
             y_legend="Duração total (s)",
             title="Histograma da duração das requisições em relação à complexidade de memória",
+        ),
+        plot_wrapper(
+            plot_summary,
+            x_legend="",
+            y_legend="",
+            title="Sumário - complexidade de memória)",
         ),
     ),
     "complexity_factor": (
@@ -485,17 +550,23 @@ ANALYSIS_TYPE = {
             y_legend="Req/s",
             title="Requisições por segundo por complexidade computacional",
         ),
-        plot_wrapper(
-            plot_total_bloxplot_timings,
-            x_legend="Complexidade computacional",
-            y_legend="Duração total (s)",
-            title="Requisições por segundo por complexidade computacional",
-        ),
+        # plot_wrapper(
+        #     plot_total_bloxplot_timings,
+        #     x_legend="Complexidade computacional",
+        #     y_legend="Duração total (s)",
+        #     title="Requisições por segundo por complexidade computacional",
+        # ),
         plot_wrapper(
             plot_histogram,
             x_legend="Frequência",
             y_legend="Duração total (s)",
             title="Histograma da duração das requisições em relação à complexidade computacional",
+        ),
+        plot_wrapper(
+            plot_summary,
+            x_legend="",
+            y_legend="",
+            title="Sumário - complexidade computacional",
         ),
     ),
 }
@@ -512,6 +583,7 @@ def main(
     results = []
     for parameter, plots in ANALYSIS_TYPE.items():
         print("Parameter", parameter)
+
         api_params = get_bechmark_params(
             types.BenchmarkTypes.API,
             parameter,
@@ -532,21 +604,16 @@ def main(
         print("running for MSG...")
         msg_results = run(msg_params, env)
 
-        results.append(
-            [
-                plots,
-                api_results,
-                msg_results,
-                benchmark_range_callback(parameter)[0],
-                parameter,
-                show_plots,
-                save_plots,
-            ]
+        plot_results(
+            plots,
+            api_results,
+            msg_results,
+            benchmark_range_callback(parameter)[0],
+            parameter,
+            show_plots,
+            save_plots,
         )
         sleep(5)
-
-    for result in results:
-        plot_results(*result)
 
 
 @click.command()
