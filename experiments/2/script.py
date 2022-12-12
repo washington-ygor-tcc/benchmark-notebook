@@ -1,6 +1,10 @@
+from time import sleep
 import click
 import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib import colors
+from matplotlib.ticker import PercentFormatter
 
 from benchmark.application import app, types, config
 from benchmark.application.types import BenchmarkParams
@@ -8,9 +12,48 @@ from benchmark.application.types import BenchmarkParams
 
 flatten = lambda lst: [item for sublist in lst for item in sublist]
 timings = lambda results: [
-    [t.end - t.start for t in result.response_list]
-    for result in results
+    [t.end - t.start for t in result.response_list] for result in results
 ]
+
+
+def plot_histogram(
+    api_results,
+    msg_results,
+    x_values,
+    x_legend,
+    y_legend,
+    title,
+    file_prefix,
+    show=False,
+    save=True,
+):
+    api_elapsed_times = flatten(timings(api_results))
+    msg_elapsed_times = flatten(timings(msg_results))
+
+    fig, axs = plt.subplots(1, 2, sharey=True, tight_layout=True)
+
+    axs[0].hist(api_elapsed_times)
+    axs[1].hist(msg_elapsed_times)
+
+    axs[0].set_title("API RPC", fontsize=10)
+    axs[1].set_title("Mensageria", fontsize=10)
+
+    axs[0].grid(True)
+    axs[1].grid(True)
+
+    fig.supxlabel(x_legend)
+    fig.supylabel(y_legend)
+    fig.suptitle(title)
+    fig.subplots_adjust(top=0.93, hspace=0.2, wspace=0.2)
+
+    if save:
+        plt.savefig(f"plots/{file_prefix}_histogram.png")
+
+    if show:
+        plt.show()
+    else:
+        plt.close()
+
 
 def plot_total_bloxplot_timings(
     api_results,
@@ -79,13 +122,15 @@ def plot_total_timings(
         return [result.elapsed_time for result in results]
 
     plt.plot(x_values, get_result_timings(api_results), ":r", label="API RPC")
-    plt.plot(x_values, get_result_timings(msg_results), "--b", label="Mensageria")
+    plt.plot(
+        x_values, get_result_timings(msg_results), "--b", label="Mensageria"
+    )
     plt.legend()
     plt.grid(True)
     plt.xlabel(x_legend)
     plt.ylabel(y_legend)
     plt.title(title)
-    plt.yscale("log", base=10)
+    # plt.yscale("log", base=10)
     plt.xscale("log", base=2)
     if save:
         plt.savefig(f"plots/{file_prefix}_test_total.png")
@@ -118,14 +163,17 @@ def plot_mean_timings(
         x_values, get_mean_request_timings(api_results), ":r", label="API RPC"
     )
     plt.plot(
-        x_values, get_mean_request_timings(msg_results), "--b", label="Mensageria"
+        x_values,
+        get_mean_request_timings(msg_results),
+        "--b",
+        label="Mensageria",
     )
     plt.legend()
     plt.grid(True)
     plt.xlabel(x_legend)
     plt.ylabel(y_legend)
     plt.title(title)
-    plt.yscale("log", base=10)
+    # plt.yscale("log", base=10)
     plt.xscale("log", base=2)
 
     if save:
@@ -159,14 +207,17 @@ def plot_throughput(
         x_values, get_requests_per_second(api_results), ":r", label="API RPC"
     )
     plt.plot(
-        x_values, get_requests_per_second(msg_results), "--b", label="Mensageria"
+        x_values,
+        get_requests_per_second(msg_results),
+        "--b",
+        label="Mensageria",
     )
     plt.legend()
     plt.xlabel(x_legend)
     plt.ylabel(y_legend)
     plt.title(title)
     plt.grid(True)
-    plt.yscale("log", base=10)
+    # plt.yscale("log", base=10)
     plt.xscale("log", base=2)
     plt.xticks(x_values)
 
@@ -196,7 +247,10 @@ def plot_std_timings(
         x_values, get_standard_deviation(api_results), ":r", label="API RPC"
     )
     plt.plot(
-        x_values, get_standard_deviation(msg_results), "--b", label="Mensageria"
+        x_values,
+        get_standard_deviation(msg_results),
+        "--b",
+        label="Mensageria",
     )
 
     plt.legend()
@@ -239,7 +293,14 @@ def plot_wrapper(plot_func, x_legend, y_legend, title):
     return wrapper
 
 
-def get_bechmark_params(benchmark_type, parameter, range_values, fixed_requests_number):
+def get_bechmark_params(
+    benchmark_type,
+    parameter,
+    range_values,
+    fixed_requests_number,
+    fixed_runtime,
+):
+
     default_params = dict(
         benchmark_type=benchmark_type,
         complexity_factor=1,
@@ -248,14 +309,21 @@ def get_bechmark_params(benchmark_type, parameter, range_values, fixed_requests_
         batch_size=fixed_requests_number,
         batch_progress=False,
         total_progress=True,
+        runtime=fixed_runtime,
     )
 
-    def update(parameter, value):
+    def update(parameter, value, defaults):
         default_params[parameter] = value
+        default_params.update(defaults)
         return default_params
 
+    parameter_range, defaults = range_values(
+        parameter, fixed_requests_number, fixed_runtime
+    )
+
     return [
-        BenchmarkParams(**update(parameter, value)) for value in range_values
+        BenchmarkParams(**update(parameter, value_range, defaults))
+        for value_range in parameter_range
     ]
 
 
@@ -264,10 +332,23 @@ def run(params, env):
 
 
 def plot_results(
-    plots, api_results, msg_results, benchmark_range, parameter, show=False, save=True
+    plots,
+    api_results,
+    msg_results,
+    benchmark_range,
+    parameter,
+    show=False,
+    save=True,
 ):
     for plot in plots:
-        plot(api_results, msg_results, benchmark_range, parameter, show=show, save=save)
+        plot(
+            api_results,
+            msg_results,
+            benchmark_range,
+            parameter,
+            show=show,
+            save=save,
+        )
 
 
 ANALYSIS_TYPE = {
@@ -302,6 +383,44 @@ ANALYSIS_TYPE = {
             y_legend="Duração total (s)",
             title="Duração total por volume de requisições",
         ),
+        plot_wrapper(
+            plot_histogram,
+            x_legend="Frequência",
+            y_legend="Duração total (s)",
+            title="Histograma da duração das requisições",
+        ),
+    ),
+    "runtime": (
+        plot_wrapper(
+            plot_total_timings,
+            x_legend="Tempo de execusão",
+            y_legend="Duração (s)",
+            title="Duração total por volume de requisições",
+        ),
+        plot_wrapper(
+            plot_mean_timings,
+            x_legend="Tempo de execusão",
+            y_legend="Duração média (s)",
+            title="Duração média por tempo de execusão",
+        ),
+        plot_wrapper(
+            plot_std_timings,
+            x_legend="Tempo de execusão",
+            y_legend="Desvio padrão",
+            title="Desvio padrão por tempo de execusão",
+        ),
+        plot_wrapper(
+            plot_throughput,
+            x_legend="Tempo de execusão",
+            y_legend="Req/s",
+            title="Requisições por segundo",
+        ),
+        plot_wrapper(
+            plot_total_bloxplot_timings,
+            x_legend="Tempo de execusão",
+            y_legend="Duração total (s)",
+            title="Duração total por tempo de execusão",
+        ),
     ),
     "memory_overhead": (
         plot_wrapper(
@@ -333,6 +452,12 @@ ANALYSIS_TYPE = {
             x_legend="Complexidade de memória",
             y_legend="Duração total (s)",
             title="Duração total das requisições por complexidade de memória",
+        ),
+        plot_wrapper(
+            plot_histogram,
+            x_legend="Frequência",
+            y_legend="Duração total (s)",
+            title="Histograma da duração das requisições em relação à complexidade de memória",
         ),
     ),
     "complexity_factor": (
@@ -366,28 +491,45 @@ ANALYSIS_TYPE = {
             y_legend="Duração total (s)",
             title="Requisições por segundo por complexidade computacional",
         ),
+        plot_wrapper(
+            plot_histogram,
+            x_legend="Frequência",
+            y_legend="Duração total (s)",
+            title="Histograma da duração das requisições em relação à complexidade computacional",
+        ),
     ),
 }
 
 
-def main(benchmark_range_callback, env, fixed_requests_number, show_plots=False, save_plots=True):
+def main(
+    benchmark_range_callback,
+    env,
+    fixed_requests_number,
+    fixed_runtime,
+    show_plots=False,
+    save_plots=True,
+):
     results = []
-    ttests = []
     for parameter, plots in ANALYSIS_TYPE.items():
-        print("parameter", parameter)
+        print("Parameter", parameter)
         api_params = get_bechmark_params(
             types.BenchmarkTypes.API,
             parameter,
-            benchmark_range_callback(parameter),
-            fixed_requests_number
+            benchmark_range_callback,
+            fixed_requests_number,
+            fixed_runtime,
         )
         msg_params = get_bechmark_params(
             types.BenchmarkTypes.MSG,
             parameter,
-            benchmark_range_callback(parameter),
-            fixed_requests_number
+            benchmark_range_callback,
+            fixed_requests_number,
+            fixed_runtime,
         )
+        print("running for API...")
         api_results = run(api_params, env)
+
+        print("running for MSG...")
         msg_results = run(msg_params, env)
 
         results.append(
@@ -395,16 +537,16 @@ def main(benchmark_range_callback, env, fixed_requests_number, show_plots=False,
                 plots,
                 api_results,
                 msg_results,
-                benchmark_range_callback(parameter),
+                benchmark_range_callback(parameter)[0],
                 parameter,
                 show_plots,
-                save_plots
+                save_plots,
             ]
         )
+        sleep(5)
 
     for result in results:
         plot_results(*result)
-
 
 
 @click.command()
@@ -422,20 +564,48 @@ def main(benchmark_range_callback, env, fixed_requests_number, show_plots=False,
 @click.option("--complexity_factor", "-cf", type=int, default=11)
 @click.option("--requests_number", "-rn", type=int, default=15)
 @click.option("--fixed_requests_number", "-fr", type=int, default=4096)
+@click.option("--fixed_runtime", "-ft", type=int, default=None)
+@click.option("--runtime", "-rt", type=int, default=2)
 @click.option("--save", is_flag=True)
 @click.option("--show", is_flag=True)
-def cli(env, memory_overhead, complexity_factor, requests_number, fixed_requests_number, save, show):
-
-    def range_callback(parameter):
+def cli(
+    env,
+    memory_overhead,
+    complexity_factor,
+    requests_number,
+    fixed_requests_number,
+    fixed_runtime,
+    runtime,
+    save,
+    show,
+):
+    def range_callback(
+        parameter, fixed_requests_number=None, fixed_runtime=None
+    ):
         match parameter:
             case "memory_overhead":
-                return [2**i for i in range(memory_overhead)]
+                return [2**i for i in range(memory_overhead)], {}
             case "complexity_factor":
-                return [2**i for i in range(complexity_factor)]
+                return [2**i for i in range(complexity_factor)], {}
             case "requests_number":
-                return [2**i for i in range(requests_number)]
+                return [2**i for i in range(requests_number)], {}
+            case "runtime":
+                return [2 * i for i in range(1, runtime)], {
+                    "requests_number": None
+                }
 
-    main(range_callback, env, fixed_requests_number, show_plots=show, save_plots=save)
+    if fixed_runtime is not None:
+        fixed_requests_number = None
+
+    main(
+        range_callback,
+        env,
+        fixed_requests_number,
+        fixed_runtime,
+        show_plots=show,
+        save_plots=save,
+    )
+
 
 if __name__ == "__main__":
     cli()
